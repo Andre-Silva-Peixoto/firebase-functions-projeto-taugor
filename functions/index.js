@@ -22,17 +22,44 @@ const validateToken = async (req, res, next) => {
   }
 
   try {
-    // Verificar e decodificar o token
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken; // Armazenar o usuário no req.user
-    next(); // Passa para a próxima função (ou rota)
+    req.user = decodedToken;
+    next();
   } catch (error) {
     console.log("Token inválido:", error);
     return res.status(401).send('Unauthorized: Invalid token');
   }
 };
 
-// Usar o middleware para proteger a rota de cadastrar funcionário
+// Rota para listar funcionários
+app.get("/listar-funcionarios", async (req, res) => {
+  try {
+    const funcionariosRef = db.collection("funcionarios");
+    const snapshot = await funcionariosRef.get();
+    const funcionarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return res.status(200).json(funcionarios);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
+});
+
+// Rota para detalhar um funcionário específico
+app.get("/detalhar-funcionario/:id", validateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const funcionarioDoc = await db.collection("funcionarios").doc(id).get();
+    if (!funcionarioDoc.exists) {
+      return res.status(404).send("Funcionário não encontrado");
+    }
+    return res.status(200).json({ id: funcionarioDoc.id, ...funcionarioDoc.data() });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
+});
+
+// Rota para cadastrar funcionário
 app.post("/cadastrar-funcionario", validateToken, (req, res) => {
   (async () => {
     try {
@@ -46,6 +73,7 @@ app.post("/cadastrar-funcionario", validateToken, (req, res) => {
         dataAdmissao: req.body.dataAdmissao,
         setor: req.body.setor,
         salario: req.body.salario,
+        fotoPerfil: req.body.fotoPerfil,
       });
       return res.status(200).send();
     } catch (error) {
