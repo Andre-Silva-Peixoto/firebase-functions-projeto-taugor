@@ -18,7 +18,7 @@ const validateToken = async (req, res, next) => {
   const idToken = req.headers.authorization && req.headers.authorization.split('Bearer ')[1];
 
   if (!idToken) {
-    return res.status(401).send('Unauthorized: No token provided');
+    return res.status(401).send('Não autorizado: Não autenticado');
   }
 
   try {
@@ -27,12 +27,12 @@ const validateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.log("Token inválido:", error);
-    return res.status(401).send('Unauthorized: Invalid token');
+    return res.status(401).send('Não autorizado: Autenticação invalida');
   }
 };
 
 // Rota para listar funcionários
-app.get("/listar-funcionarios", async (req, res) => {
+app.get("/listar-funcionarios", validateToken, async (req, res) => {
   try {
     const funcionariosRef = db.collection("funcionarios");
     const snapshot = await funcionariosRef.get();
@@ -74,6 +74,7 @@ app.post("/cadastrar-funcionario", validateToken, (req, res) => {
         setor: req.body.setor,
         salario: req.body.salario,
         fotoPerfil: req.body.fotoPerfil,
+        historico: []
       });
       return res.status(200).send();
     } catch (error) {
@@ -83,5 +84,52 @@ app.post("/cadastrar-funcionario", validateToken, (req, res) => {
   })();
 });
 
-// Exportar a API para o Firebase Functions
+// Rota para editar funcionário e adicionar histórico
+app.put("/editar-funcionario/:id", validateToken, async (req, res) => {
+  const { id } = req.params;
+  const dadosAlterados = req.body;
+
+  try {
+    const funcionarioDoc = await db.collection("funcionarios").doc(id).get();
+    if (!funcionarioDoc.exists) {
+      return res.status(404).send("Funcionário não encontrado");
+    }
+
+    const funcionarioData = funcionarioDoc.data();
+
+    const historicoItem = {
+      data: new Date(),
+      alteracoes: []
+    };
+
+    // Verificar as alterações feitas e adicionar ao histórico
+    Object.keys(dadosAlterados).forEach((key) => {
+      if (
+        key !== "id" &&
+        key !== "historico" &&
+        key !== "ultimaAtualizacao" &&
+        dadosAlterados[key] !== funcionarioData[key]
+      ) {
+        historicoItem.alteracoes.push({
+          campo: key,
+          valorAntigo: funcionarioData[key],
+          valorNovo: dadosAlterados[key],
+          dataAlteracao: new Date()
+        });
+      }
+    });
+
+    await db.collection("funcionarios").doc(id).update({
+      ...dadosAlterados,
+      historico: admin.firestore.FieldValue.arrayUnion(historicoItem),
+      ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return res.status(200).send("Funcionário atualizado com sucesso");
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
+});
+
 exports.app = functions.https.onRequest(app);
