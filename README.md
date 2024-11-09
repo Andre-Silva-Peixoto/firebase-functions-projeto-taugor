@@ -41,7 +41,25 @@ O arquivo `index.js` inclui:
   firebase login
   ```
 
-- **Credenciais do Firebase**: O arquivo `permissions.json` deve conter as credenciais do serviço para autenticar o Firebase Admin SDK.
+- **Credenciais do Firebase**: Para que as funções Firebase funcionem corretamente, é necessário criar um arquivo `permissions.json` dentro da pasta `functions`, contendo as credenciais da conta de serviço do Firebase. Este arquivo deve incluir os seguintes campos obrigatórios:
+
+  ```json
+  {
+    "type": "service_account",
+    "project_id": "<SEU_PROJECT_ID>",
+    "private_key_id": "<SEU_PRIVATE_KEY_ID>",
+    "private_key": "-----BEGIN PRIVATE KEY-----\n<SUA_PRIVATE_KEY>\n-----END PRIVATE KEY-----\n",
+    "client_email": "<SEU_CLIENT_EMAIL>",
+    "client_id": "<SEU_CLIENT_ID>",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "<SEU_CLIENT_X509_CERT_URL>",
+    "universe_domain": "googleapis.com"
+  }
+  ```
+
+  Esse arquivo **não deve ser commitado em repositórios públicos** para evitar vazamento de informações sensíveis.
 
 ### Instalação das Dependências
 
@@ -70,4 +88,4 @@ Inclua o token JWT no cabeçalho `Authorization` para todas as requisições às
 
 ```http
 Authorization: Bearer <TOKEN_JWT>
-```
+``` 
