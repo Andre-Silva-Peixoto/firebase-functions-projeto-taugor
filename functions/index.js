@@ -37,7 +37,17 @@ app.get("/listar-funcionarios", validateToken, async (req, res) => {
   try {
     const funcionariosRef = db.collection("funcionarios");
     const snapshot = await funcionariosRef.get();
-    const funcionarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const funcionarios = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        fotoPerfil: data.fotoPerfil,
+        nome: data.nome,
+        cargo: data.cargo,
+        setor: data.setor,
+        salario: data.salario
+      };
+    });
     return res.status(200).json(funcionarios);
   } catch (error) {
     console.log(error);
